@@ -21,6 +21,12 @@ jobs:
           override: true
           components: rustfmt, clippy
 
+      - name: "Install musl-tools"
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install musl-tools
+
       - name: "Build binary"
         shell: bash
         run: |
