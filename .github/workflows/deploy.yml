@@ -7,7 +7,7 @@ env:
   AZURE_FUNCTIONAPP_PACKAGE_PATH: "."
 
 jobs:
-  build:
+  build-and-deploy:
     runs-on: ubuntu-latest
     steps:
       - name: "Checkout GitHub action"
@@ -36,24 +36,6 @@ jobs:
         shell: bash
         run: |
           cp target/x86_64-unknown-linux-musl/release/handler .
-
-      - name: "Upload"
-        uses: actions/upload-artifact@v2
-        with:
-          name: handler
-          path: .
-
-  deploy:
-    runs-on: ubuntu-latest
-    needs: build
-    steps:
-      - name: "Checkout"
-        uses: actions/checkout@v2
-
-      - name: "Download"
-        uses: actions/download-artifact@v2
-        with:
-          name: handler
 
       - name: "Login"
         uses: azure/login@v1
