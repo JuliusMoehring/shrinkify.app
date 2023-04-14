@@ -13,6 +13,12 @@ jobs:
       - name: "Checkout GitHub action"
         uses: actions/checkout@v2
 
+      - name: "Install libssl-dev"
+        shell: bash
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y libssl-dev
+
       - name: Install latest nightly
         uses: actions-rs/toolchain@v1
         with:
