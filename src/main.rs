@@ -1,11 +1,36 @@
 use rand::Rng;
 use redis;
+use rocket::fairing::{Fairing, Info, Kind};
+use rocket::http::Header;
 use rocket::http::Status;
 use rocket::response::Redirect;
 use rocket::serde::{json::Json, Deserialize, Serialize};
 use rocket::{get, launch, post, routes};
+use rocket::{Request, Response};
 use std::env;
 use std::net::Ipv4Addr;
+
+pub struct CORS;
+
+#[rocket::async_trait]
+impl Fairing for CORS {
+    fn info(&self) -> Info {
+        Info {
+            name: "Add CORS headers to responses",
+            kind: Kind::Response,
+        }
+    }
+
+    async fn on_response<'r>(&self, _request: &'r Request<'_>, response: &mut Response<'r>) {
+        response.set_header(Header::new("Access-Control-Allow-Origin", "*"));
+        response.set_header(Header::new(
+            "Access-Control-Allow-Methods",
+            "POST, GET, OPTIONS",
+        ));
+        response.set_header(Header::new("Access-Control-Allow-Headers", "*"));
+        response.set_header(Header::new("Access-Control-Allow-Credentials", "true"));
+    }
+}
 
 const PORT_ENV_VAR: &str = "FUNCTIONS_CUSTOMHANDLER_PORT";
 const REDIS_URI_ENV_VAR: &str = "REDIS_URI";
@@ -142,6 +167,7 @@ fn rocket() -> _ {
         .merge(("port", port));
 
     rocket::custom(figment)
+        .attach(CORS)
         .mount("/", routes![index])
         .mount("/api", routes![redirect])
         .mount(
