@@ -72,8 +72,6 @@ pub(crate) async fn redirect(origin: &str) -> Result<Redirect, Status> {
         let redirect_vec = get_by_origin(&mut redis_connection, origin);
 
         if let Some(redirect) = RedisRedirect::from_vec(&redirect_vec) {
-            println!("{:?}", redirect);
-
             match redirect.status {
                 301 => return Ok(Redirect::moved(redirect.target)),
                 302 => return Ok(Redirect::found(redirect.target)),
@@ -83,6 +81,8 @@ pub(crate) async fn redirect(origin: &str) -> Result<Redirect, Status> {
                 _ => return Ok(Redirect::to(redirect.target)),
             }
         }
+
+        return Err(Status::NotFound);
     }
 
     Err(Status::InternalServerError)
