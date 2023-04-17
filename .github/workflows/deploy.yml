@@ -3,7 +3,7 @@ name: Build and deploy to Azure Functions
 on: [push]
 
 env:
-  AZURE_FUNCTIONAPP_NAME: shrinkifyapp
+  AZURE_FUNCTIONAPP_NAME: "shrinkify-functions"
   AZURE_FUNCTIONAPP_PACKAGE_PATH: "."
 
 jobs:
