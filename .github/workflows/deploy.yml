@@ -66,7 +66,7 @@ jobs:
       - name: "Login"
         uses: azure/login@v1
         with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
+          creds: ${{ secrets.AZURE_RBAC_CREDENTIALS }}
 
       - name: "Deploy"
         uses: azure/functions-action@v1
