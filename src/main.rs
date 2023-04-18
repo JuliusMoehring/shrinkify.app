@@ -1,9 +1,11 @@
+use qrcode_generator::QrCodeEcc;
 use rand::Rng;
 use redis;
 use rocket::fairing::{Fairing, Info, Kind};
 use rocket::http::Header;
 use rocket::http::Status;
 use rocket::response::Redirect;
+use rocket::response::Responder;
 use rocket::serde::{json::Json, Deserialize, Serialize};
 use rocket::{get, launch, post, routes};
 use rocket::{Request, Response};
@@ -155,6 +157,33 @@ pub(crate) fn validate_origin(validate_origin_request: Json<ValidateOriginReques
     Status::InternalServerError
 }
 
+#[derive(Deserialize, Debug)]
+#[serde(crate = "rocket::serde")]
+struct GenerateQRCodeRequest {
+    shrink: String,
+}
+
+#[derive(Responder)]
+#[response(content_type = "image/svg+xml")]
+pub(crate) struct SVG(pub(crate) String);
+
+#[post("/generate-qr-code", data = "<generate_qr_code_request>")]
+pub(crate) fn generate_qr_code(
+    generate_qr_code_request: Json<GenerateQRCodeRequest>,
+) -> Result<SVG, Status> {
+    let result = qrcode_generator::to_svg_to_string(
+        &generate_qr_code_request.shrink,
+        QrCodeEcc::Low,
+        1024,
+        None::<&str>,
+    );
+
+    match result {
+        Ok(svg) => Ok(SVG(svg)),
+        Err(..) => Err(Status::InternalServerError),
+    }
+}
+
 #[launch]
 fn rocket() -> _ {
     let port: u16 = match env::var(PORT_ENV_VAR) {
@@ -172,7 +201,7 @@ fn rocket() -> _ {
         .mount("/api", routes![redirect])
         .mount(
             "/api/shrink",
-            routes![generate_origin, validate_origin, create],
+            routes![generate_origin, validate_origin, create, generate_qr_code],
         )
 }
 

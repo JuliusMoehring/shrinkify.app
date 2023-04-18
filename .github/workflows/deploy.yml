@@ -75,7 +75,7 @@ jobs:
           app-name: ${{ vars.AZURE_FUNCTIONAPP_NAME }}
           package: ${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}
 
-      - name: logout
+      - name: "Logout"
         if: always()
         run: |
           az logout
