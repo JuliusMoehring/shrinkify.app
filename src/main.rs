@@ -1,3 +1,4 @@
+use chrono::{DateTime, Utc};
 use qrcode_generator::QrCodeEcc;
 use rand::Rng;
 use redis;
@@ -99,7 +100,11 @@ fn get_position(vec: &Vec<String>, element: &str) -> Option<usize> {
 struct CreateShrinkRequest {
     origin: String,
     target: String,
-    status: usize,
+    #[serde(rename = "statusCode")]
+    status_code: usize,
+    #[serde(default)]
+    #[serde(rename = "expireDate", with = "iso_8601")]
+    expire_date: Option<DateTime<Utc>>,
 }
 
 #[post("/", data = "<create_shrink>")]
@@ -110,10 +115,21 @@ pub(crate) async fn create(create_shrink: Json<CreateShrinkRequest>) -> Status {
             .arg(HSET_TARGET)
             .arg(&create_shrink.target)
             .arg(HSET_STATUS)
-            .arg(&create_shrink.status)
+            .arg(&create_shrink.status_code)
             .query::<usize>(&mut redis_connection);
 
         if create_shrink_result.is_ok() {
+            if let Some(date) = create_shrink.expire_date {
+                let set_expire_at_result: Result<usize, redis::RedisError> = redis::cmd("EXPIREAT")
+                    .arg(&create_shrink.origin)
+                    .arg(date.timestamp())
+                    .query::<usize>(&mut redis_connection);
+
+                if let Err(..) = set_expire_at_result {
+                    return Status::InternalServerError;
+                }
+            }
+
             return Status::Created;
         }
     }
@@ -265,4 +281,27 @@ fn check_if_path_exists(redis_connection: &mut redis::Connection, origin: &str) 
     let redis_origin = get_by_origin(redis_connection, origin);
 
     redis_origin.len() != 0
+}
+
+mod iso_8601 {
+    use chrono::{DateTime, TimeZone, Utc};
+    use serde::{self, Deserialize, Deserializer};
+
+    const FORMAT: &'static str = "%Y-%m-%dT%H:%M:%S%.3fZ";
+
+    pub fn deserialize<'de, D>(deserializer: D) -> Result<Option<DateTime<Utc>>, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let s: Option<String> = Option::deserialize(deserializer)?;
+
+        if let Some(s) = s {
+            return Ok(Some(
+                Utc.datetime_from_str(&s, FORMAT)
+                    .map_err(serde::de::Error::custom)?,
+            ));
+        }
+
+        Ok(None)
+    }
 }
